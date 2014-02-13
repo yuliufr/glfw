@@ -40,6 +40,9 @@
 // The XRandR extension provides mode setting and gamma control
 #include <X11/extensions/Xrandr.h>
 
+// The XSync extension provides sync
+#include <X11/extensions/sync.h>
+
 // The Xkb extension provides improved keyboard support
 #include <X11/XKBlib.h>
 
@@ -132,6 +135,7 @@ typedef struct _GLFWlibraryX11
     Atom            NET_WM_ICON_NAME;
     Atom            NET_WM_PID;
     Atom            NET_WM_PING;
+    Atom            NET_WM_SYNC_REQUEST;
     Atom            NET_WM_STATE;
     Atom            NET_WM_STATE_ABOVE;
     Atom            NET_WM_STATE_FULLSCREEN;
@@ -174,6 +178,14 @@ typedef struct _GLFWlibraryX11
         GLboolean   gammaBroken;
         GLboolean   monitorBroken;
     } randr;
+
+    struct {
+        GLboolean   available;
+        int         eventBase;
+        int         errorBase;
+        int         majorVersion;
+        int         minorVersion;
+    } sync;
 
     struct {
         GLboolean   available;

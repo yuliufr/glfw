@@ -340,7 +340,7 @@ static GLboolean createWindow(_GLFWwindow* window,
     // Declare the WM protocols supported by GLFW
     {
         int count = 0;
-        Atom protocols[2];
+        Atom protocols[3];
 
         // The WM_DELETE_WINDOW ICCCM protocol
         // Basic window close notification protocol
@@ -352,6 +352,12 @@ static GLboolean createWindow(_GLFWwindow* window,
         // unresponsive if the WM doesn't get a reply within a few seconds
         if (_glfw.x11.NET_WM_PING)
             protocols[count++] = _glfw.x11.NET_WM_PING;
+
+        // The _NET_WM_SYNC_REQUEST protocol
+        // Allows the client and the window manager to synchronize the rate
+        // of ConfigureNotify events so they don't overwhelm a slow client
+        if (_glfw.x11.NET_WM_SYNC_REQUEST)
+            protocols[count++] = _glfw.x11.NET_WM_SYNC_REQUEST;
 
         if (count > 0)
         {
@@ -1139,6 +1145,11 @@ static void processEvent(XEvent *event)
                                False,
                                SubstructureNotifyMask | SubstructureRedirectMask,
                                &reply);
+                }
+                else if (protocol == _glfw.x11.NET_WM_SYNC_REQUEST)
+                {
+                    // The window manager is notifying us about upcoming
+                    // ConfigureNotify events
                 }
             }
             else if (event->xclient.message_type == _glfw.x11.XdndEnter)

@@ -449,6 +449,8 @@ static void detectEWMH(void)
         getSupportedAtom(supportedAtoms, atomCount, "_NET_WM_PID");
     _glfw.x11.NET_WM_PING =
         getSupportedAtom(supportedAtoms, atomCount, "_NET_WM_PING");
+    _glfw.x11.NET_WM_SYNC_REQUEST =
+        getSupportedAtom(supportedAtoms, atomCount, "_NET_WM_SYNC_REQUEST");
     _glfw.x11.NET_ACTIVE_WINDOW =
         getSupportedAtom(supportedAtoms, atomCount, "_NET_ACTIVE_WINDOW");
     _glfw.x11.NET_FRAME_EXTENTS =
@@ -532,6 +534,18 @@ static GLboolean initExtensions(void)
     {
         if (XineramaIsActive(_glfw.x11.display))
             _glfw.x11.xinerama.available = GL_TRUE;
+    }
+
+    _glfw.x11.sync.available =
+        XSyncQueryExtension(_glfw.x11.display,
+                            &_glfw.x11.sync.eventBase,
+                            &_glfw.x11.sync.errorBase);
+
+    if (_glfw.x11.sync.available)
+    {
+        XSyncInitialize(_glfw.x11.display,
+                        &_glfw.x11.sync.majorVersion,
+                        &_glfw.x11.sync.minorVersion);
     }
 
 #if defined(_GLFW_HAS_XINPUT)

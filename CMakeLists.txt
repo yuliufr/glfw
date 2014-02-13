@@ -264,6 +264,15 @@ if (_GLFW_X11)
     list(APPEND glfw_INCLUDE_DIRS "${X11_X11_INCLUDE_PATH}")
     list(APPEND glfw_LIBRARIES "${X11_X11_LIB}" "${CMAKE_THREAD_LIBS_INIT}")
 
+    # Check for XSync (client/server synchronization)
+    if (NOT X11_XSync_FOUND)
+        message(FATAL_ERROR "The XSync library and headers were not found")
+    endif()
+
+    list(APPEND glfw_INCLUDE_DIRS ${X11_XSync_INCLUDE_PATH})
+    list(APPEND glfw_LIBRARIES ${X11_Xext_LIB})
+    set(GLFW_PKG_DEPS "${GLFW_PKG_DEPS} xext")
+
     # Check for XRandR (modern resolution switching and gamma control)
     if (NOT X11_Xrandr_FOUND)
         message(FATAL_ERROR "The RandR library and headers were not found")
