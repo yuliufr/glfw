@@ -111,6 +111,8 @@ typedef struct _GLFWlibraryX11
     int             screen;
     Window          root;
 
+    // Helper window for IPC
+    Window          helper;
     // Invisible cursor for hidden cursor mode
     Cursor          cursor;
     // Context for mapping window XIDs to _GLFWwindow pointers
