@@ -663,51 +663,6 @@ static void handleSelectionRequest(XEvent* event)
     XSendEvent(_glfw.x11.display, request->requestor, False, 0, &reply);
 }
 
-static void pushSelectionToManager(_GLFWwindow* window)
-{
-    XConvertSelection(_glfw.x11.display,
-                      _glfw.x11.CLIPBOARD_MANAGER,
-                      _glfw.x11.SAVE_TARGETS,
-                      None,
-                      window->x11.handle,
-                      CurrentTime);
-
-    for (;;)
-    {
-        XEvent event;
-
-        while (XCheckIfEvent(_glfw.x11.display, &event, isSelectionEvent, NULL))
-        {
-            switch (event.type)
-            {
-                case SelectionRequest:
-                    handleSelectionRequest(&event);
-                    break;
-
-                case SelectionClear:
-                    handleSelectionClear(&event);
-                    break;
-
-                case SelectionNotify:
-                {
-                    if (event.xselection.target == _glfw.x11.SAVE_TARGETS)
-                    {
-                        // This means one of two things; either the selection was
-                        // not owned, which means there is no clipboard manager, or
-                        // the transfer to the clipboard manager has completed
-                        // In either case, it means we are done here
-                        return;
-                    }
-
-                    break;
-                }
-            }
-        }
-
-        selectDisplayConnection(NULL);
-    }
-}
-
 // Enter full screen mode
 //
 static void enterFullscreenMode(_GLFWwindow* window)
@@ -1457,6 +1412,53 @@ unsigned long _glfwGetWindowProperty(Window window,
     return itemCount;
 }
 
+// Push contents of our selection to clipboard manager
+//
+void _glfwPushSelectionToManager(void)
+{
+    XConvertSelection(_glfw.x11.display,
+                      _glfw.x11.CLIPBOARD_MANAGER,
+                      _glfw.x11.SAVE_TARGETS,
+                      None,
+                      _glfw.x11.helper,
+                      CurrentTime);
+
+    for (;;)
+    {
+        XEvent event;
+
+        while (XCheckIfEvent(_glfw.x11.display, &event, isSelectionEvent, NULL))
+        {
+            switch (event.type)
+            {
+                case SelectionRequest:
+                    handleSelectionRequest(&event);
+                    break;
+
+                case SelectionClear:
+                    handleSelectionClear(&event);
+                    break;
+
+                case SelectionNotify:
+                {
+                    if (event.xselection.target == _glfw.x11.SAVE_TARGETS)
+                    {
+                        // This means one of two things; either the selection was
+                        // not owned, which means there is no clipboard manager, or
+                        // the transfer to the clipboard manager has completed
+                        // In either case, it means we are done here
+                        return;
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        selectDisplayConnection(NULL);
+    }
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 //////                       GLFW platform API                      //////
@@ -1507,12 +1509,6 @@ void _glfwPlatformDestroyWindow(_GLFWwindow* window)
 
     if (window->x11.handle)
     {
-        if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD) ==
-            window->x11.handle)
-        {
-            pushSelectionToManager(window);
-        }
-
         XDeleteContext(_glfw.x11.display, window->x11.handle, _glfw.x11.context);
         XUnmapWindow(_glfw.x11.display, window->x11.handle);
         XDestroyWindow(_glfw.x11.display, window->x11.handle);
@@ -1990,10 +1986,10 @@ void _glfwPlatformSetClipboardString(_GLFWwindow* window, const char* string)
 
     XSetSelectionOwner(_glfw.x11.display,
                        _glfw.x11.CLIPBOARD,
-                       window->x11.handle, CurrentTime);
+                       _glfw.x11.helper, CurrentTime);
 
     if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD) !=
-        window->x11.handle)
+        _glfw.x11.helper)
     {
         _glfwInputError(GLFW_PLATFORM_ERROR,
                         "X11: Failed to become owner of clipboard selection");
@@ -2008,8 +2004,8 @@ const char* _glfwPlatformGetClipboardString(_GLFWwindow* window)
                              XA_STRING };
     const size_t formatCount = sizeof(formats) / sizeof(formats[0]);
 
-    if (findWindowByHandle(XGetSelectionOwner(_glfw.x11.display,
-                                              _glfw.x11.CLIPBOARD)))
+    if (XGetSelectionOwner(_glfw.x11.display, _glfw.x11.CLIPBOARD) ==
+        _glfw.x11.helper)
     {
         // Instead of doing a large number of X round-trips just to put this
         // string into a window property and then read it back, just return it
@@ -2028,7 +2024,7 @@ const char* _glfwPlatformGetClipboardString(_GLFWwindow* window)
                           _glfw.x11.CLIPBOARD,
                           formats[i],
                           _glfw.x11.GLFW_SELECTION,
-                          window->x11.handle, CurrentTime);
+                          _glfw.x11.helper, CurrentTime);
 
         // XCheckTypedEvent is used instead of XIfEvent in order not to lock
         // other threads out from the display during the entire wait period

@@ -264,5 +264,6 @@ unsigned long _glfwGetWindowProperty(Window window,
 void _glfwGrabXErrorHandler(void);
 void _glfwReleaseXErrorHandler(void);
 void _glfwInputXError(int error, const char* message);
+void _glfwPushSelectionToManager(void);
 
 #endif // _glfw3_x11_platform_h_
