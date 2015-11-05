@@ -1197,6 +1197,9 @@ const char* _glfwPlatformGetKeyName(int key, int scancode)
                              _glfw.win32.keyName,
                              sizeof(_glfw.win32.keyName),
                              NULL, NULL))
+    {
+        return NULL;
+    }
 
     return _glfw.win32.keyName;
 }
