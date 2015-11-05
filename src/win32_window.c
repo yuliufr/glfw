@@ -1182,7 +1182,10 @@ void _glfwPlatformSetCursorMode(_GLFWwindow* window, int mode)
 
 const char* _glfwPlatformGetKeyName(int key, int scancode)
 {
+    int length;
     WCHAR name[16];
+    BYTE state[256];
+    UINT vk;
 
     if (key != GLFW_KEY_UNKNOWN)
         scancode = _glfw.win32.nativeKeys[key];
@@ -1190,17 +1193,34 @@ const char* _glfwPlatformGetKeyName(int key, int scancode)
     if (!_glfwIsPrintable(_glfw.win32.publicKeys[scancode]))
         return NULL;
 
-    if (!GetKeyNameTextW(scancode << 16, name, sizeof(name) / sizeof(WCHAR)))
-        return NULL;
+    memset(state, 0, sizeof(state));
 
-    if (!WideCharToMultiByte(CP_UTF8, 0, name, -1,
-                             _glfw.win32.keyName,
-                             sizeof(_glfw.win32.keyName),
-                             NULL, NULL))
+    vk = MapVirtualKey(scancode, MAPVK_VSC_TO_VK);
+
+    length = ToUnicode(vk, scancode, state,
+                       name, sizeof(name) / sizeof(name[0]), 0);
+    if (length == -1)
     {
-        return NULL;
+        WCHAR dummy[16];
+
+        // NOTE: ToUnicode has input system side effects because Microsoft
+        // HACK: Trigger dead key again to emit character and then input it
+        //       a third time to restore the dead key state in the layout
+        length = ToUnicode(vk, scancode, state,
+                           name, sizeof(name) / sizeof(name[0]), 0);
+        ToUnicode(vk, scancode, state,
+                  dummy, sizeof(dummy) / sizeof(dummy[0]), 0);
     }
 
+    if (length < 1)
+        return NULL;
+
+    length = WideCharToMultiByte(CP_UTF8, 0, name, 1,
+                                 _glfw.win32.keyName,
+                                 sizeof(_glfw.win32.keyName),
+                                 NULL, NULL);
+
+    _glfw.win32.keyName[length] = '\0';
     return _glfw.win32.keyName;
 }
 
