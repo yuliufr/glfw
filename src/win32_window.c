@@ -1190,7 +1190,7 @@ const char* _glfwPlatformGetKeyName(int key, int scancode)
     if (!_glfwIsPrintable(_glfw.win32.publicKeys[scancode]))
         return NULL;
 
-    if (!GetKeyNameTextW(scancode, name, sizeof(name) / sizeof(WCHAR)))
+    if (!GetKeyNameTextW(scancode << 16, name, sizeof(name) / sizeof(WCHAR)))
         return NULL;
 
     if (!WideCharToMultiByte(CP_UTF8, 0, name, -1,
