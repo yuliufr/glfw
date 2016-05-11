@@ -1340,19 +1340,20 @@ static void processEvent(XEvent *event)
 
         case FocusIn:
         {
+            if (window->cursorMode == GLFW_CURSOR_DISABLED)
+                _glfwPlatformSetCursorMode(window, GLFW_CURSOR_DISABLED);
+
+            if (window->x11.ic)
+                XSetICFocus(window->x11.ic);
+
             if (event->xfocus.mode == NotifyGrab ||
                 event->xfocus.mode == NotifyUngrab)
             {
                 // Ignore focus events from popup indicator windows, window menu
                 // key chords and window dragging
+                window->x11.inNonClient = GLFW_FALSE;
                 return;
             }
-
-            if (window->x11.ic)
-                XSetICFocus(window->x11.ic);
-
-            if (window->cursorMode == GLFW_CURSOR_DISABLED)
-                _glfwPlatformSetCursorMode(window, GLFW_CURSOR_DISABLED);
 
             _glfwInputWindowFocus(window, GLFW_TRUE);
             return;
@@ -1360,19 +1361,20 @@ static void processEvent(XEvent *event)
 
         case FocusOut:
         {
+            if (window->cursorMode == GLFW_CURSOR_DISABLED)
+                _glfwPlatformSetCursorMode(window, GLFW_CURSOR_NORMAL);
+
+            if (window->x11.ic)
+                XUnsetICFocus(window->x11.ic);
+
             if (event->xfocus.mode == NotifyGrab ||
                 event->xfocus.mode == NotifyUngrab)
             {
                 // Ignore focus events from popup indicator windows, window menu
                 // key chords and window dragging
+                window->x11.inNonClient = GLFW_TRUE;
                 return;
             }
-
-            if (window->x11.ic)
-                XUnsetICFocus(window->x11.ic);
-
-            if (window->cursorMode == GLFW_CURSOR_DISABLED)
-                _glfwPlatformSetCursorMode(window, GLFW_CURSOR_NORMAL);
 
             if (window->monitor && window->autoIconify)
                 _glfwPlatformIconifyWindow(window);
@@ -2001,7 +2003,9 @@ void _glfwPlatformPollEvents(void)
     }
 
     _GLFWwindow* window = _glfw.cursorWindow;
-    if (window && window->cursorMode == GLFW_CURSOR_DISABLED)
+    if (window &&
+        window->cursorMode == GLFW_CURSOR_DISABLED &&
+        !window->x11.inNonClient)
     {
         int width, height;
         _glfwPlatformGetWindowSize(window, &width, &height);
